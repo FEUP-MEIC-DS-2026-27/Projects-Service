@@ -1,0 +1,43 @@
+# h.i adds these services to its compose.prod.yaml, and this block to deploy/Caddyfile.prod:
+#   {$PUBLIC_HOST}:8010 {
+#   	reverse_proxy projects-service:8080
+#   }
+
+services:
+  projects-db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: projects
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${PROJECTS_DB_PASSWORD:?set PROJECTS_DB_PASSWORD}
+    volumes:
+      - projects_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d projects"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  projects-migrations:
+    image: ghcr.io/feup-meic-ds-2026-27/projects-migrations:${PROJECTS_IMAGE_TAG:-latest}
+    environment:
+      FLYWAY_URL: jdbc:postgresql://projects-db:5432/projects
+      FLYWAY_USER: app
+      FLYWAY_PASSWORD: ${PROJECTS_DB_PASSWORD:?set PROJECTS_DB_PASSWORD}
+    depends_on:
+      projects-db:
+        condition: service_healthy
+
+  projects-service:
+    image: ghcr.io/feup-meic-ds-2026-27/projects-service:${PROJECTS_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__ProjectsDb: Host=projects-db;Port=5432;Username=app;Password=${PROJECTS_DB_PASSWORD:?set PROJECTS_DB_PASSWORD};Database=projects
+      CORS_ORIGINS: https://${PUBLIC_HOST:?set PUBLIC_HOST},https://${PUBLIC_HOST}:3003
+    depends_on:
+      projects-migrations:
+        condition: service_completed_successfully
+
+volumes:
+  projects_data:
