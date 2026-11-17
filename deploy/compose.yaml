@@ -1,0 +1,47 @@
+# h.i uses these services without the build sections.
+name: projects
+
+services:
+  projects-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: projects
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: dev-projects-password
+    volumes:
+      - projects_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d projects"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  projects-migrations:
+    image: ghcr.io/feup-meic-ds-2026-27/projects-migrations:${PROJECTS_IMAGE_TAG:-latest}
+    build:
+      context: ../projects-service
+      dockerfile: DockerfileFlyway
+    environment:
+      FLYWAY_URL: jdbc:postgresql://projects-db:5432/projects
+      FLYWAY_USER: app
+      FLYWAY_PASSWORD: dev-projects-password
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql,filesystem:/flyway/mock
+    depends_on:
+      projects-db:
+        condition: service_healthy
+
+  projects-service:
+    image: ghcr.io/feup-meic-ds-2026-27/projects-service:${PROJECTS_IMAGE_TAG:-latest}
+    build:
+      context: ../projects-service
+    environment:
+      ConnectionStrings__ProjectsDb: Host=projects-db;Port=5432;Username=app;Password=dev-projects-password;Database=projects
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3003,http://${PUBLIC_HOST:-localhost}:3000,http://${PUBLIC_HOST:-localhost}:3003
+    ports:
+      - "8010:8080"
+    depends_on:
+      projects-migrations:
+        condition: service_completed_successfully
+
+volumes:
+  projects_data:

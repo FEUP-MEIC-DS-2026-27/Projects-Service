@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);1591</NoWarn>   <!-- missing XML comment warning -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RollForward>Major</RollForward>   <!-- run on .NET 10 or any newer runtime -->
+  </PropertyGroup>
+</Project>
