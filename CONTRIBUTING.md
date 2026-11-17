@@ -34,13 +34,6 @@ Branch from `main` and name the branch `<type>/<short-description>`, for example
 
 ## Repository rules
 
-`.github/rulesets/main.json` protects `main`. Pushes must go through a pull request with one approval and resolved threads. The three CI checks must pass on a branch that is up to date with `main`. History stays linear, and `main` cannot be deleted or force-pushed. The rules match Search-Service's.
+A ruleset on GitHub protects `main`, the same as Search-Service's. Changes go through a pull request with one approval and resolved threads. The three CI checks must pass on a branch that is up to date with `main`. History stays linear, and `main` can't be deleted or force-pushed.
 
-GitHub doesn't read the file on its own. An admin applies it once, after the first commit is on `main`:
-
-```sh
-gh api -X POST repos/FEUP-MEIC-DS-2026-27/Projects-Service/rulesets --input .github/rulesets/main.json
-gh api -X PATCH repos/FEUP-MEIC-DS-2026-27/Projects-Service -F delete_branch_on_merge=true
-```
-
-When the rules change, edit the file in a PR, then update the ruleset with `gh api -X PUT repos/FEUP-MEIC-DS-2026-27/Projects-Service/rulesets/<id> --input .github/rulesets/main.json`. The check names must match the jobs in `.github/workflows/projects-service.yml`.
+If you rename a job in `.github/workflows/projects-service.yml`, update the required checks in the ruleset settings too.
