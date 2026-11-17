@@ -5,5 +5,3 @@ obj/
 *.user
 TestResults/
 
-# Local Bruno collections
-bruno/

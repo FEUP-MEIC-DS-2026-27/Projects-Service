@@ -19,7 +19,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .WithHeaders("Content-Type")
     .WithExposedHeaders("Location")));
 
-builder.Services.AddApplicationModule(builder.Configuration);
+builder.Services.AddApplicationModule();
 builder.Services.AddInfrastructureModule(builder.Configuration);
 
 // live: the process is up. ready: the database is reachable.
