@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS projects (
     CONSTRAINT valid_project_dates CHECK (end_date >= start_date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_projects_id ON projects(id);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_tags ON projects(tags);
 CREATE INDEX IF NOT EXISTS idx_projects_start_date ON projects(start_date);
@@ -45,3 +44,10 @@ CREATE TABLE IF NOT EXISTS project_researchers (
 );
 
 CREATE INDEX idx_project_researchers_researcher ON project_researchers(researcher_id);
+
+CREATE TABLE IF NOT EXISTS project_grants (
+    grant_id INTEGER PRIMARY KEY,
+    
+    project_id VARCHAR(30) NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+);
+

@@ -7,8 +7,16 @@ namespace ProjectsService.Infrastructure.Repositories;
 
 public sealed class ProjectRepository : IProjectRepository
 {
-    private const string BaseColumns =
-        "id, title, description, status, priority, project_type, client, department, manager, start_date, end_date, funding, updated_at";
+    private const string BaseColumns = """
+        id, title, description, status, priority, project_type,
+        client, department, manager, start_date, end_date, funding, updated_at,
+        ARRAY(
+            SELECT pg.grant_id
+            FROM project_grants pg
+            WHERE pg.project_id = projects.id
+            ORDER BY pg.grant_id
+        ) AS grant_ids
+        """;
 
     private const string Columns =
         BaseColumns + """
@@ -139,6 +147,7 @@ public sealed class ProjectRepository : IProjectRepository
         End = reader.GetFieldValue<DateOnly>(10),
         Funding = reader.IsDBNull(11) ? null : reader.GetDecimal(11),
         UpdatedAt = DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc),
+        GrantIds = reader.GetFieldValue<int[]>(13),
         ResearcherIds = reader.FieldCount > 13 ? reader.GetFieldValue<int[]>(13) : []
     };
 

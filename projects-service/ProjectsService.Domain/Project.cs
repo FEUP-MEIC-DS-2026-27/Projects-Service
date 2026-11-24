@@ -9,6 +9,7 @@ public sealed record Project
     public required string Status { get; init; }
     public required string Priority { get; init; }
     public required string ProjectType { get; init; }
+    public int[] GrantIds { get; init; } = [];
     public required string Client { get; init; }
     public required string Department { get; init; }
     public required string Manager { get; init; }

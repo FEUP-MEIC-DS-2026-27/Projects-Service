@@ -17,6 +17,8 @@ public sealed record ProjectResponse
 
     public required string ProjectType { get; init; }
 
+    public int[] GrantIds { get; init; } = [];
+
     public required string Client { get; init; }
 
     public required string Department { get; init; }
@@ -50,6 +52,7 @@ public sealed record ProjectResponse
         End = project.End,
         Funding = project.Funding,
         ResearcherIds = project.ResearcherIds,
-        UpdatedAt = project.UpdatedAt
+        UpdatedAt = project.UpdatedAt,
+        GrantIds = project.GrantIds
     };
 }

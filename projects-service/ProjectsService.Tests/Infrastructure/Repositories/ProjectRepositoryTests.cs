@@ -79,11 +79,43 @@ public class ProjectRepositoryTests : IAsyncLifetime
         Assert.True(await _repository.DeleteAsync(_testId));
         Assert.False(await _repository.DeleteAsync(_testId));
         Assert.Null(await _repository.GetAsync(_testId));
+        Assert.Equal(project with { UpdatedAt = added.UpdatedAt }, added);
+        Assert.Equal(added, await _repository.GetAsync(_testId));
+
+        // Later in the method:
+        Assert.Equal(onHold with { UpdatedAt = updated.UpdatedAt }, updated);
+        Assert.Equal(updated, await _repository.GetAsync(_testId));
+
+        Assert.Equivalent(project with { UpdatedAt = added.UpdatedAt }, added);
+        Assert.Equivalent(added, await _repository.GetAsync(_testId));
+
+        // Later in the method:
+        Assert.Equivalent(onHold with { UpdatedAt = updated.UpdatedAt }, updated);
+        Assert.Equivalent(updated, await _repository.GetAsync(_testId));
     }
 
     [PostgresFact]
     public async Task UpdateAsync_WithAnUnknownId_ReturnsFalse()
     {
         Assert.Null(await _repository.UpdateAsync(Projects.Valid(_testId)));
+    }
+
+    [PostgresFact]
+    public async Task GetAndList_ReadGrantIds()
+    {
+        var project = await _repository.GetAsync("INE-25-0001");
+
+        Assert.NotNull(project);
+        Assert.Equal(new[] { 1001, 1003 }, project.GrantIds);
+
+        var projects = await _repository.ListAsync();
+        var listed = Assert.Single(projects, p => p.Id == "INE-25-0001");
+
+        Assert.Equal(new[] { 1001, 1003 }, listed.GrantIds);
+
+        var created = await _repository.AddAsync(Projects.Valid(_testId));
+
+        Assert.NotNull(created);
+        Assert.Empty(created.GrantIds);
     }
 }
