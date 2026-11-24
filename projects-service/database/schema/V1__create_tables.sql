@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS projects (
     CONSTRAINT valid_project_dates CHECK (end_date >= start_date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(id);
+CREATE INDEX IF NOT EXISTS idx_projects_id ON projects(id);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_tags ON projects(tags);
 CREATE INDEX IF NOT EXISTS idx_projects_start_date ON projects(start_date);
