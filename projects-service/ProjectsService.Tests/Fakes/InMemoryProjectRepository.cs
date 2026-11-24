@@ -29,13 +29,21 @@ public sealed class InMemoryProjectRepository : IProjectRepository
         }
     }
 
-    public Task<Project?> UpdateAsync(Project project, CancellationToken cancellationToken = default)
+    public Task<Project?> UpdateAsync(
+        Project project,
+        CancellationToken cancellationToken = default)
     {
         lock (_gate)
         {
-            if (!_projects.ContainsKey(project.Id))
+            if (!_projects.TryGetValue(project.Id, out var existing))
                 return Task.FromResult<Project?>(null);
-            var saved = project with { UpdatedAt = DateTime.UtcNow };
+
+            var saved = project with
+            {
+                UpdatedAt = DateTime.UtcNow,
+                GrantIds = existing.GrantIds
+            };
+
             _projects[project.Id] = saved;
             return Task.FromResult<Project?>(saved);
         }

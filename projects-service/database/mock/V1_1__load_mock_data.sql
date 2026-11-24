@@ -538,4 +538,5 @@ INSERT INTO project_grants
 VALUES
     ('INE-25-0001', 1001),
     ('INE-25-0002', 1002),
-    ('INE-25-0001', 1003);
+    ('INE-25-0001', 1003)
+ON CONFLICT (grant_id) DO NOTHING;

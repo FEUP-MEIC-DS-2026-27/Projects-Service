@@ -51,3 +51,5 @@ CREATE TABLE IF NOT EXISTS project_grants (
     project_id VARCHAR(30) NOT NULL REFERENCES projects(id) ON DELETE CASCADE
 );
 
+
+CREATE INDEX IF NOT EXISTS idx_project_grants_project ON project_grants(project_id);

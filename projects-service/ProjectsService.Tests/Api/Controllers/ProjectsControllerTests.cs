@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using System.Net.Http.Json;
 using ProjectsService.Api.Models.Response.Projects;
 using ProjectsService.Tests.Fakes;
@@ -155,5 +156,55 @@ public class ProjectsControllerTests : IClassFixture<ProjectsApiFactory>
         var response = await _client.PostAsJsonAsync("/api/projects", new { id = "bad-date", start = "not a date" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetListAndPut_ReturnGrantIds(bool hasGrants)
+    {
+        var id = $"api-grants-{hasGrants}";
+        int[] expected = hasGrants ? [1001, 1003] : [];
+
+        await _factory.Repository.AddAsync(
+            Projects.Valid(id) with { GrantIds = expected });
+
+        var project = await _client.GetFromJsonAsync<JsonElement>(
+            $"/api/projects/{id}");
+
+        Assert.Equal(
+            expected,
+            project.GetProperty("grantIds")
+                .EnumerateArray()
+                .Select(value => value.GetInt32())
+                .ToArray());
+
+        var projects = await _client.GetFromJsonAsync<JsonElement>(
+            "/api/projects");
+
+        var listed = Assert.Single(
+            projects.EnumerateArray(),
+            item => item.GetProperty("id").GetString() == id);
+
+        Assert.Equal(
+            expected,
+            listed.GetProperty("grantIds")
+                .EnumerateArray()
+                .Select(value => value.GetInt32())
+                .ToArray());
+
+        using var response = await _client.PutAsJsonAsync(
+            $"/api/projects/{id}", Body(null));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var updated = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(
+            expected,
+            updated.GetProperty("grantIds")
+                .EnumerateArray()
+                .Select(value => value.GetInt32())
+                .ToArray());
     }
 }
