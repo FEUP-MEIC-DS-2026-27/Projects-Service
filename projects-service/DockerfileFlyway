@@ -1,4 +1,4 @@
-FROM docker.io/flyway/flyway:13.12.2
+FROM docker.io/flyway/flyway:13.13.0
 COPY database/schema /flyway/sql
 COPY database/mock /flyway/mock
 CMD ["migrate"]
