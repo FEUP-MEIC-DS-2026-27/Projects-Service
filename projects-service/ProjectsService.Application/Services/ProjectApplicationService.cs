@@ -75,6 +75,10 @@ public sealed partial class ProjectApplicationService : IProjectApplicationServi
         if (data.Funding < 0)
             throw new InvalidProjectException("funding cannot be negative.");
 
+        var researcherIds = data.ResearcherIds?.Distinct().Order().ToArray() ?? [];
+        if (researcherIds.Any(id => id <= 0))
+            throw new InvalidProjectException("researcherIds must contain positive integers.");
+
         return new Project
         {
             Id = id,
@@ -88,7 +92,8 @@ public sealed partial class ProjectApplicationService : IProjectApplicationServi
             Manager = Required("manager", data.Manager, MaxManagerLength),
             Start = start,
             End = end,
-            Funding = data.Funding
+            Funding = data.Funding,
+            ResearcherIds = researcherIds
         };
     }
 

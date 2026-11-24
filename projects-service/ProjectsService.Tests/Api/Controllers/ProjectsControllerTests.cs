@@ -29,7 +29,8 @@ public class ProjectsControllerTests : IClassFixture<ProjectsApiFactory>
         manager = "Matilde Ribeiro",
         start = "2025-03-01",
         end = "2026-02-28",
-        funding = 125000.50m
+        funding = 125000.50m,
+        researcherIds = new[] { 1, 2 }
     };
 
     [Fact]
@@ -55,6 +56,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsApiFactory>
         Assert.Contains("\"start\":\"2025-03-01\"", body);
         Assert.Contains("\"end\":\"2026-02-28\"", body);
         Assert.Contains("\"funding\":125000.50", body);
+        Assert.Contains("\"researcherIds\":[1,2]", body);
         Assert.Matches("\"updatedAt\":\"[0-9T:.-]+Z\"", body);
     }
 

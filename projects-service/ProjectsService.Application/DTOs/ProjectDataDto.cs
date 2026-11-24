@@ -14,4 +14,5 @@ public sealed record ProjectDataDto
     public DateOnly? Start { get; init; }
     public DateOnly? End { get; init; }
     public decimal? Funding { get; init; }
+    public IReadOnlyList<int>? ResearcherIds { get; init; }
 }

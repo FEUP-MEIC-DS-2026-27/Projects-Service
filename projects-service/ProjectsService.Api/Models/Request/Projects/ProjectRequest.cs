@@ -34,6 +34,8 @@ public sealed record ProjectRequest
     /// <summary>Approved funding, in euros. Optional.</summary>
     public decimal? Funding { get; init; }
 
+    public IReadOnlyList<int>? ResearcherIds { get; init; }
+
     public ProjectDataDto ToDto() => new()
     {
         Title = Title,
@@ -46,6 +48,7 @@ public sealed record ProjectRequest
         Manager = Manager,
         Start = Start,
         End = End,
-        Funding = Funding
+        Funding = Funding,
+        ResearcherIds = ResearcherIds
     };
 }

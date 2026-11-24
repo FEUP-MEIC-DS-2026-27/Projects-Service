@@ -35,6 +35,7 @@ Swagger UI is at `/swagger`. Health checks are `/health/live` and `/health/ready
   "start": "2025-03-01",
   "end": "2026-02-28",
   "funding": 125000.50,
+  "researcherIds": [1, 2, 5, 13],
   "updatedAt": "2026-09-18T12:00:00Z"
 }
 ```

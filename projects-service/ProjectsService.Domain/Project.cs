@@ -18,6 +18,8 @@ public sealed record Project
     /// <summary>Approved funding, in euros. Null when unknown.</summary>
     public decimal? Funding { get; init; }
 
+    public IReadOnlyList<int> ResearcherIds { get; init; } = [];
+
     /// <summary>In UTC. The database sets it on every save.</summary>
     public DateTime UpdatedAt { get; init; }
 }

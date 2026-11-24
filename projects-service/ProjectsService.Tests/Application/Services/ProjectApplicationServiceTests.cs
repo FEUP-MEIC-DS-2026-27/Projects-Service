@@ -118,6 +118,23 @@ public class ProjectApplicationServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WithResearcherIds_DeduplicatesAndOrdersThem()
+    {
+        var created = await _service.CreateAsync(
+            "p-1",
+            Projects.ValidData with { ResearcherIds = [3, 1, 3, 2] });
+
+        Assert.Equal([1, 2, 3], created.ResearcherIds);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithInvalidResearcherId_Throws()
+    {
+        await Assert.ThrowsAsync<InvalidProjectException>(() =>
+            _service.CreateAsync("p-1", Projects.ValidData with { ResearcherIds = [0] }));
+    }
+
+    [Fact]
     public async Task CreateAsync_EndingTheDayItStarts_IsValid()
     {
         var day = new DateOnly(2026, 1, 1);

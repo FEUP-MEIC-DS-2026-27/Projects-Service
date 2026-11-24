@@ -33,6 +33,7 @@ public static class Projects
         Manager = ValidData.Manager!,
         Start = ValidData.Start!.Value,
         End = ValidData.End!.Value,
-        Funding = ValidData.Funding
+        Funding = ValidData.Funding,
+        ResearcherIds = [1, 2]
     };
 }
