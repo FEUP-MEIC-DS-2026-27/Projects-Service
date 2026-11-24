@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   projects-service:
-    runs-on: self-hosted
+    runs-on: [self-hosted, isep]
     env:
       PROJECTS_TEST_DB: Host=localhost;Port=5432;Username=projects;Password=projects;Database=projects_test
     steps:
@@ -60,7 +60,7 @@ jobs:
 
   images:
     needs: projects-service
-    runs-on: self-hosted
+    runs-on: [self-hosted, isep]
     permissions:
       contents: read
       packages: write
@@ -98,7 +98,8 @@ jobs:
         with:
           context: projects-service
           file: projects-service/${{ matrix.file }}
-          platforms: linux/amd64,linux/arm64
+          # PR images are never pushed, so skip the arm64 build there.
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
