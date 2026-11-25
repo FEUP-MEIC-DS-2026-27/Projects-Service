@@ -7,8 +7,17 @@ namespace ProjectsService.Infrastructure.Repositories;
 
 public sealed class ProjectRepository : IProjectRepository
 {
-    private const string Columns =
+    private const string BaseColumns =
         "id, title, description, status, priority, project_type, client, department, manager, start_date, end_date, funding, updated_at";
+
+    private const string Columns =
+        BaseColumns + """
+        ,
+        COALESCE((SELECT array_agg(pr.researcher_id ORDER BY pr.researcher_id)
+                  FROM project_researchers pr
+                  WHERE pr.project_id = projects.id),
+                 ARRAY[]::integer[]) AS researcher_ids
+        """;
 
     private readonly NpgsqlDataSource _dataSource;
 
@@ -38,20 +47,39 @@ public sealed class ProjectRepository : IProjectRepository
 
     public async Task<Project?> AddAsync(Project project, CancellationToken cancellationToken = default)
     {
-        await using var command = _dataSource.CreateCommand($"""
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"""
             INSERT INTO projects (id, title, description, status, priority, project_type, client, department, manager, start_date, end_date, funding)
             VALUES (@id, @title, @description, @status, @priority, @projectType, @client, @department, @manager, @start, @end, @funding)
             ON CONFLICT (id) DO NOTHING
-            RETURNING {Columns}
-            """);
+            RETURNING {BaseColumns}
+            """;
         AddParameters(command, project);
 
-        return await ReadSingleAsync(command, cancellationToken);
+        var saved = await ReadSingleAsync(command, cancellationToken);
+        if (saved is null)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return null;
+        }
+
+        await ReplaceResearchersAsync(connection, transaction, project.Id, project.ResearcherIds, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return saved with { ResearcherIds = project.ResearcherIds };
     }
 
     public async Task<Project?> UpdateAsync(Project project, CancellationToken cancellationToken = default)
     {
-        await using var command = _dataSource.CreateCommand($"""
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"""
             UPDATE projects
             SET title = @title,
                 description = @description,
@@ -66,11 +94,20 @@ public sealed class ProjectRepository : IProjectRepository
                 funding = @funding,
                 updated_at = now() AT TIME ZONE 'UTC'
             WHERE id = @id
-            RETURNING {Columns}
-            """);
+            RETURNING {BaseColumns}
+            """;
         AddParameters(command, project);
 
-        return await ReadSingleAsync(command, cancellationToken);
+        var saved = await ReadSingleAsync(command, cancellationToken);
+        if (saved is null)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return null;
+        }
+
+        await ReplaceResearchersAsync(connection, transaction, project.Id, project.ResearcherIds, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return saved with { ResearcherIds = project.ResearcherIds };
     }
 
     public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
@@ -101,8 +138,38 @@ public sealed class ProjectRepository : IProjectRepository
         Start = reader.GetFieldValue<DateOnly>(9),
         End = reader.GetFieldValue<DateOnly>(10),
         Funding = reader.IsDBNull(11) ? null : reader.GetDecimal(11),
-        UpdatedAt = DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc)
+        UpdatedAt = DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc),
+        ResearcherIds = reader.FieldCount > 13 ? reader.GetFieldValue<int[]>(13) : []
     };
+
+    private static async Task ReplaceResearchersAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        string projectId,
+        IReadOnlyList<int> researcherIds,
+        CancellationToken cancellationToken)
+    {
+        await using (var delete = connection.CreateCommand())
+        {
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM project_researchers WHERE project_id = @projectId";
+            delete.Parameters.Add(Text("projectId", projectId));
+            await delete.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        foreach (var researcherId in researcherIds)
+        {
+            await using var insert = connection.CreateCommand();
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO project_researchers (project_id, researcher_id)
+                VALUES (@projectId, @researcherId)
+                """;
+            insert.Parameters.Add(Text("projectId", projectId));
+            insert.Parameters.Add(new NpgsqlParameter("researcherId", NpgsqlDbType.Integer) { Value = researcherId });
+            await insert.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
 
     private static void AddParameters(NpgsqlCommand command, Project project)
     {

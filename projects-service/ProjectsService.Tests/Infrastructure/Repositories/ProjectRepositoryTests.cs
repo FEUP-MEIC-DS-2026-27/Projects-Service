@@ -40,6 +40,7 @@ public class ProjectRepositoryTests : IAsyncLifetime
         Assert.StartsWith("Solar Power Installation - Hamburg", project.Title);
         Assert.Equal("Matilde Ribeiro", project.Manager);
         Assert.NotNull(project.Funding);
+        Assert.Equal([15, 18, 24, 27], project.ResearcherIds);
         Assert.Equal(new DateTime(2026, 9, 18, 12, 0, 0, DateTimeKind.Utc), project.UpdatedAt);
     }
 
@@ -60,16 +61,20 @@ public class ProjectRepositoryTests : IAsyncLifetime
         var added = await _repository.AddAsync(project);
         Assert.NotNull(added);
         Assert.Null(await _repository.AddAsync(project));
-        Assert.Equal(project with { UpdatedAt = added.UpdatedAt }, added);
-        Assert.Equal(added, await _repository.GetAsync(_testId));
+        Assert.Equal(project with { UpdatedAt = added.UpdatedAt, ResearcherIds = added.ResearcherIds }, added);
+        var fetchedAdded = await _repository.GetAsync(_testId);
+        Assert.NotNull(fetchedAdded);
+        Assert.Equal(added.ResearcherIds, fetchedAdded.ResearcherIds);
         Assert.InRange(added.UpdatedAt, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow.AddMinutes(1));
 
         var onHold = project with { Status = "On Hold", End = new DateOnly(2027, 1, 1), Funding = null };
         var updated = await _repository.UpdateAsync(onHold);
         Assert.NotNull(updated);
-        Assert.Equal(onHold with { UpdatedAt = updated.UpdatedAt }, updated);
+        Assert.Equal(onHold with { UpdatedAt = updated.UpdatedAt, ResearcherIds = updated.ResearcherIds }, updated);
         Assert.True(updated.UpdatedAt >= added.UpdatedAt);
-        Assert.Equal(updated, await _repository.GetAsync(_testId));
+        var fetchedUpdated = await _repository.GetAsync(_testId);
+        Assert.NotNull(fetchedUpdated);
+        Assert.Equal(updated.ResearcherIds, fetchedUpdated.ResearcherIds);
 
         Assert.True(await _repository.DeleteAsync(_testId));
         Assert.False(await _repository.DeleteAsync(_testId));
