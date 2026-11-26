@@ -19,25 +19,27 @@ permissions:
 
 jobs:
   projects-service:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: projects
-          POSTGRES_PASSWORD: projects
-          POSTGRES_DB: projects_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U projects"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    runs-on: self-hosted
     env:
       PROJECTS_TEST_DB: Host=localhost;Port=5432;Username=projects;Password=projects;Database=projects_test
     steps:
+      # The runner empties runner.temp after every job.
+      - name: Keep tools in runner temp
+        run: |
+          echo "NUGET_PACKAGES=$RUNNER_TEMP/nuget" >> "$GITHUB_ENV"
+          echo "DOTNET_INSTALL_DIR=$RUNNER_TEMP/dotnet" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v7
+
+      # The runner host can only run host-network containers, so Postgres
+      # runs as a step instead of a service container.
+      - name: Start Postgres
+        run: |
+          docker rm -fv projects-test-db 2>/dev/null || true
+          docker run -d --name projects-test-db --network host \
+            -e POSTGRES_USER=projects -e POSTGRES_PASSWORD=projects -e POSTGRES_DB=projects_test \
+            postgres:17
+          until docker exec projects-test-db pg_isready -h localhost -U projects; do sleep 2; done
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -45,23 +47,29 @@ jobs:
 
       - uses: actions/cache@v6
         with:
-          path: ~/.nuget/packages
+          path: ${{ runner.temp }}/nuget
           key: nuget-${{ runner.os }}-${{ hashFiles('projects-service/Directory.Packages.props', 'projects-service/**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Apply schema
-        env:
-          PGPASSWORD: projects
         run: |
-          psql -h localhost -U projects -d projects_test -v ON_ERROR_STOP=1 -f projects-service/database/schema/V1__create_tables.sql
-          psql -h localhost -U projects -d projects_test -v ON_ERROR_STOP=1 -f projects-service/database/mock/V1_1__load_mock_data.sql
+          for f in projects-service/database/schema/V1__create_tables.sql projects-service/database/mock/V1_1__load_mock_data.sql; do
+            docker exec -i projects-test-db psql -U projects -d projects_test -v ON_ERROR_STOP=1 < "$f"
+          done
 
       - name: Test
         run: dotnet test projects-service/ProjectsService.sln -c Release
 
+      - name: Clean up
+        if: always()
+        run: |
+          docker rm -fv projects-test-db || true
+          docker rmi postgres:17 || true
+          find "$GITHUB_WORKSPACE" -mindepth 1 -delete
+
   images:
     needs: projects-service
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -73,9 +81,18 @@ jobs:
           - name: migrations
             file: DockerfileFlyway
     steps:
+      - name: Remove builders left by killed runs
+        run: |
+          docker buildx ls --format '{{.Name}} {{.DriverEndpoint}}' \
+            | awk '$2 == "docker-container" && $1 ~ /^projects-${{ matrix.name }}-/ { print $1 }' \
+            | xargs -r -n1 docker buildx rm -f
+
       - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v4
+        with:
+          name: projects-${{ matrix.name }}-${{ github.run_id }}
+          driver-opts: network=host
 
       - uses: docker/login-action@v4
         if: github.event_name != 'pull_request'
@@ -103,3 +120,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      - name: Clean up
+        if: always()
+        run: |
+          docker buildx rm -f projects-${{ matrix.name }}-${{ github.run_id }} || true
+          find "$GITHUB_WORKSPACE" -mindepth 1 -delete
