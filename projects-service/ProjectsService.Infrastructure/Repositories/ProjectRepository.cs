@@ -148,7 +148,7 @@ public sealed class ProjectRepository : IProjectRepository
         Funding = reader.IsDBNull(11) ? null : reader.GetDecimal(11),
         UpdatedAt = DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc),
         GrantIds = reader.GetFieldValue<int[]>(13),
-        ResearcherIds = reader.FieldCount > 13 ? reader.GetFieldValue<int[]>(13) : []
+        ResearcherIds = reader.FieldCount > 14 ? reader.GetFieldValue<int[]>(14) : []
     };
 
     private static async Task ReplaceResearchersAsync(
