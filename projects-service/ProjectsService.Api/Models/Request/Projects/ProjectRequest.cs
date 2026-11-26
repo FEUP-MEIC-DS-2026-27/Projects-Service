@@ -34,6 +34,8 @@ public sealed record ProjectRequest
     /// <summary>Approved funding, in euros. Optional.</summary>
     public decimal? Funding { get; init; }
 
+    public int[] GrantIds { get; init; } = [];
+
     public IReadOnlyList<int>? ResearcherIds { get; init; }
 
     public ProjectDataDto ToDto() => new()
@@ -43,6 +45,7 @@ public sealed record ProjectRequest
         Status = Status,
         Priority = Priority,
         ProjectType = ProjectType,
+        GrantIds = GrantIds,
         Client = Client,
         Department = Department,
         Manager = Manager,

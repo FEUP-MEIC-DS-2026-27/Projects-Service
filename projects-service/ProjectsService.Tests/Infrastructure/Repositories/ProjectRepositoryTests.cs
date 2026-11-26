@@ -65,9 +65,16 @@ public class ProjectRepositoryTests : IAsyncLifetime
         var fetchedAdded = await _repository.GetAsync(_testId);
         Assert.NotNull(fetchedAdded);
         Assert.Equal(added.ResearcherIds, fetchedAdded.ResearcherIds);
+        Assert.Equivalent(added, fetchedAdded);
         Assert.InRange(added.UpdatedAt, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow.AddMinutes(1));
 
-        var onHold = project with { Status = "On Hold", End = new DateOnly(2027, 1, 1), Funding = null };
+        var onHold = project with
+        {
+            Status = "On Hold",
+            End = new DateOnly(2027, 1, 1),
+            Funding = null
+        };
+
         var updated = await _repository.UpdateAsync(onHold);
         Assert.NotNull(updated);
         Assert.Equal(onHold with { UpdatedAt = updated.UpdatedAt, ResearcherIds = updated.ResearcherIds }, updated);
@@ -75,6 +82,7 @@ public class ProjectRepositoryTests : IAsyncLifetime
         var fetchedUpdated = await _repository.GetAsync(_testId);
         Assert.NotNull(fetchedUpdated);
         Assert.Equal(updated.ResearcherIds, fetchedUpdated.ResearcherIds);
+        Assert.Equivalent(updated, fetchedUpdated);
 
         Assert.True(await _repository.DeleteAsync(_testId));
         Assert.False(await _repository.DeleteAsync(_testId));
@@ -85,5 +93,55 @@ public class ProjectRepositoryTests : IAsyncLifetime
     public async Task UpdateAsync_WithAnUnknownId_ReturnsFalse()
     {
         Assert.Null(await _repository.UpdateAsync(Projects.Valid(_testId)));
+    }
+
+    [PostgresFact]
+    public async Task GrantLinks_SurviveUpdatesAndCascadeOnDelete()
+    {
+        var created = await _repository.AddAsync(Projects.Valid(_testId));
+
+        Assert.NotNull(created);
+        Assert.Empty(created.GrantIds);
+
+        await using (var insert = _dataSource.CreateCommand("""
+            INSERT INTO project_grants (project_id, grant_id)
+            VALUES (@projectId, -1001), (@projectId, -1002)
+            """))
+        {
+            insert.Parameters.AddWithValue("projectId", _testId);
+            await insert.ExecuteNonQueryAsync();
+        }
+
+        int[] expected = [-1002, -1001];
+
+        var project = await _repository.GetAsync(_testId);
+        Assert.NotNull(project);
+        Assert.Equal(expected, project.GrantIds);
+
+        var projects = await _repository.ListAsync();
+        var listed = Assert.Single(projects, p => p.Id == _testId);
+        Assert.Equal(expected, listed.GrantIds);
+
+        var updated = await _repository.UpdateAsync(
+            Projects.Valid(_testId) with { Title = "Updated project" });
+
+        Assert.NotNull(updated);
+        Assert.Equal("Updated project", updated.Title);
+        Assert.Equal(expected, updated.GrantIds);
+
+        var fetched = await _repository.GetAsync(_testId);
+        Assert.NotNull(fetched);
+        Assert.Equal(expected, fetched.GrantIds);
+
+        Assert.True(await _repository.DeleteAsync(_testId));
+
+        await using var remaining = _dataSource.CreateCommand("""
+            SELECT grant_id
+            FROM project_grants
+            WHERE project_id = @projectId
+            """);
+
+        remaining.Parameters.AddWithValue("projectId", _testId);
+        Assert.Null(await remaining.ExecuteScalarAsync());
     }
 }

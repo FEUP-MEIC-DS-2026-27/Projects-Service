@@ -532,3 +532,11 @@ VALUES
     ('INE-26-0075', 16),
     ('INE-26-0075', 18)
 ON CONFLICT (project_id, researcher_id) DO NOTHING;
+
+INSERT INTO project_grants 
+    (project_id, grant_id)
+VALUES
+    ('INE-25-0001', 1001),
+    ('INE-25-0002', 1002),
+    ('INE-25-0001', 1003)
+ON CONFLICT (grant_id) DO NOTHING;

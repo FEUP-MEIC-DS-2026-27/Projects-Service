@@ -44,3 +44,12 @@ CREATE TABLE IF NOT EXISTS project_researchers (
 );
 
 CREATE INDEX idx_project_researchers_researcher ON project_researchers(researcher_id);
+
+CREATE TABLE IF NOT EXISTS project_grants (
+    grant_id INTEGER PRIMARY KEY,
+    
+    project_id VARCHAR(30) NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+);
+
+
+CREATE INDEX IF NOT EXISTS idx_project_grants_project ON project_grants(project_id);

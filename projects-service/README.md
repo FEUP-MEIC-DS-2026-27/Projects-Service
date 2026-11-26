@@ -46,6 +46,9 @@ Swagger UI is at `/swagger`. Health checks are `/health/live` and `/health/ready
 - `updatedAt` is when the project last changed, in UTC. The service sets it and ignores it in request bodies. Search sorts by it.
 - `status` is one of `Planned`, `Active`, `On Hold`, `Completed` or `Cancelled`.
 - `priority` is one of `Low`, `Medium`, `High` or `Critical`.
+- `grantIds` is a response-only array of grant IDs associated with the project, ordered numerically. It is empty when there are no associations.
+- Creating or updating a project does not assign or remove grants. Updating project fields preserves existing associations.
+- Deleting a project also deletes its rows in `project_grants`.
 
 Errors answer with a `detail` you can show to users:
 

@@ -8,6 +8,7 @@ public sealed record ProjectDataDto
     public string? Status { get; init; }
     public string? Priority { get; init; }
     public string? ProjectType { get; init; }
+    public int[] GrantIds { get; init; } = [];
     public string? Client { get; init; }
     public string? Department { get; init; }
     public string? Manager { get; init; }
