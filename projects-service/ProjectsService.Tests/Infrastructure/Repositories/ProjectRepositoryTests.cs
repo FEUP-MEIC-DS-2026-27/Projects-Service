@@ -144,4 +144,57 @@ public class ProjectRepositoryTests : IAsyncLifetime
         remaining.Parameters.AddWithValue("projectId", _testId);
         Assert.Null(await remaining.ExecuteScalarAsync());
     }
+
+    [PostgresFact]
+    public async Task GetAsync_ReadsMockPartners()
+    {
+        var project = await _repository.GetAsync("INE-25-0001");
+
+        Assert.NotNull(project);
+        Assert.Equal(["p1", "p19"], project.PartnerIds);
+    }
+
+    [PostgresFact]
+    public async Task PartnerLinks_SurviveUpdatesAndCascadeOnDelete()
+    {
+        var created = await _repository.AddAsync(Projects.Valid(_testId));
+
+        Assert.NotNull(created);
+        Assert.Empty(created.PartnerIds);
+
+        await using (var insert = _dataSource.CreateCommand("""
+            INSERT INTO project_partners (project_id, partner_id)
+            VALUES (@projectId, 'p5'), (@projectId, 'p1')
+            """))
+        {
+            insert.Parameters.AddWithValue("projectId", _testId);
+            await insert.ExecuteNonQueryAsync();
+        }
+
+        string[] expected = ["p1", "p5"];
+
+        var listed = Assert.Single(await _repository.ListAsync(), p => p.Id == _testId);
+        Assert.Equal(expected, listed.PartnerIds);
+
+        var updated = await _repository.UpdateAsync(
+            Projects.Valid(_testId) with { Title = "Updated project" });
+
+        Assert.NotNull(updated);
+        Assert.Equal(expected, updated.PartnerIds);
+
+        var fetched = await _repository.GetAsync(_testId);
+        Assert.NotNull(fetched);
+        Assert.Equal(expected, fetched.PartnerIds);
+
+        Assert.True(await _repository.DeleteAsync(_testId));
+
+        await using var remaining = _dataSource.CreateCommand("""
+            SELECT partner_id
+            FROM project_partners
+            WHERE project_id = @projectId
+            """);
+
+        remaining.Parameters.AddWithValue("projectId", _testId);
+        Assert.Null(await remaining.ExecuteScalarAsync());
+    }
 }

@@ -21,6 +21,8 @@ public sealed record Project
 
     public IReadOnlyList<int> ResearcherIds { get; init; } = [];
 
+    public string[] PartnerIds { get; init; } = [];
+
     /// <summary>In UTC. The database sets it on every save.</summary>
     public DateTime UpdatedAt { get; init; }
 }
