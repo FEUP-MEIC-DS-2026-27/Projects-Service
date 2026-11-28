@@ -207,4 +207,42 @@ public class ProjectsControllerTests : IClassFixture<ProjectsApiFactory>
                 .Select(value => value.GetInt32())
                 .ToArray());
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetListAndPut_ReturnPartnerIds(bool hasPartners)
+    {
+        var id = $"api-partners-{hasPartners}";
+        string[] expected = hasPartners ? ["p1", "p5"] : [];
+
+        await _factory.Repository.AddAsync(
+            Projects.Valid(id) with { PartnerIds = expected });
+
+        var project = await _client.GetFromJsonAsync<JsonElement>(
+            $"/api/projects/{id}");
+
+        Assert.Equal(expected, PartnerIds(project));
+
+        var projects = await _client.GetFromJsonAsync<JsonElement>(
+            "/api/projects");
+
+        var listed = Assert.Single(
+            projects.EnumerateArray(),
+            item => item.GetProperty("id").GetString() == id);
+
+        Assert.Equal(expected, PartnerIds(listed));
+
+        using var response = await _client.PutAsJsonAsync(
+            $"/api/projects/{id}", Body(null));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var updated = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(expected, PartnerIds(updated));
+    }
+
+    private static string[] PartnerIds(JsonElement project) =>
+        [.. project.GetProperty("partnerIds").EnumerateArray().Select(value => value.GetString()!)];
 }

@@ -34,6 +34,9 @@ public sealed record ProjectResponse
 
     public required IReadOnlyList<int> ResearcherIds { get; init; }
 
+    /// <summary>Ids from partners-api, such as p1.</summary>
+    public string[] PartnerIds { get; init; } = [];
+
     /// <summary>In UTC. Set by the service.</summary>
     public required DateTime UpdatedAt { get; init; }
 
@@ -52,6 +55,7 @@ public sealed record ProjectResponse
         End = project.End,
         Funding = project.Funding,
         ResearcherIds = project.ResearcherIds,
+        PartnerIds = project.PartnerIds,
         UpdatedAt = project.UpdatedAt,
         GrantIds = project.GrantIds
     };

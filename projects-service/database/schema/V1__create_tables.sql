@@ -53,3 +53,13 @@ CREATE TABLE IF NOT EXISTS project_grants (
 
 
 CREATE INDEX IF NOT EXISTS idx_project_grants_project ON project_grants(project_id);
+
+CREATE TABLE IF NOT EXISTS project_partners (
+    project_id VARCHAR(30) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+
+    partner_id VARCHAR(40) NOT NULL,
+
+    PRIMARY KEY (project_id, partner_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_partners_partner ON project_partners(partner_id);

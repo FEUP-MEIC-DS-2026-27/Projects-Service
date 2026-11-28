@@ -15,7 +15,13 @@ public sealed class ProjectRepository : IProjectRepository
             FROM project_grants pg
             WHERE pg.project_id = projects.id
             ORDER BY pg.grant_id
-        ) AS grant_ids
+        ) AS grant_ids,
+        ARRAY(
+            SELECT pp.partner_id
+            FROM project_partners pp
+            WHERE pp.project_id = projects.id
+            ORDER BY pp.partner_id
+        ) AS partner_ids
         """;
 
     private const string Columns =
@@ -148,7 +154,8 @@ public sealed class ProjectRepository : IProjectRepository
         Funding = reader.IsDBNull(11) ? null : reader.GetDecimal(11),
         UpdatedAt = DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc),
         GrantIds = reader.GetFieldValue<int[]>(13),
-        ResearcherIds = reader.FieldCount > 14 ? reader.GetFieldValue<int[]>(14) : []
+        PartnerIds = reader.GetFieldValue<string[]>(14),
+        ResearcherIds = reader.FieldCount > 15 ? reader.GetFieldValue<int[]>(15) : []
     };
 
     private static async Task ReplaceResearchersAsync(

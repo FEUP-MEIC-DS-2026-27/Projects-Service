@@ -41,7 +41,8 @@ public sealed class InMemoryProjectRepository : IProjectRepository
             var saved = project with
             {
                 UpdatedAt = DateTime.UtcNow,
-                GrantIds = existing.GrantIds
+                GrantIds = existing.GrantIds,
+                PartnerIds = existing.PartnerIds
             };
 
             _projects[project.Id] = saved;

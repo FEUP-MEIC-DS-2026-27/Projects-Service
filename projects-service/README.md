@@ -36,6 +36,7 @@ Swagger UI is at `/swagger`. Health checks are `/health/live` and `/health/ready
   "end": "2026-02-28",
   "funding": 125000.50,
   "researcherIds": [1, 2, 5, 13],
+  "partnerIds": ["p3", "p19"],
   "updatedAt": "2026-09-18T12:00:00Z"
 }
 ```
@@ -49,6 +50,8 @@ Swagger UI is at `/swagger`. Health checks are `/health/live` and `/health/ready
 - `grantIds` is a response-only array of grant IDs associated with the project, ordered numerically. It is empty when there are no associations.
 - Creating or updating a project does not assign or remove grants. Updating project fields preserves existing associations.
 - Deleting a project also deletes its rows in `project_grants`.
+- `partnerIds` is a response-only array of partner IDs from `partners-api` (such as `p1`), ordered alphabetically. It is empty when the project has no partners. Look up names with `GET /api/partners` on `partners-api`.
+- Creating or updating a project does not assign or remove partners. Updating project fields preserves existing partners, and deleting a project also deletes its rows in `project_partners`.
 
 Errors answer with a `detail` you can show to users:
 
